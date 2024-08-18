@@ -26,5 +26,38 @@ warmStrategyCache({
 
 registerRoute(({ request }) => request.mode === 'navigate', pageCache);
 
-// TODO: Implement asset caching
-registerRoute();
+// Asset caching with StaleWhileRevalidate strategy
+registerRoute(
+  // Cache CSS, JS, and Web Workers
+  ({ request }) => ['style', 'script', 'worker'].includes(request.destination),
+  new StaleWhileRevalidate({
+    cacheName: 'asset-cache',
+    plugins: [
+      new CacheableResponsePlugin({
+        statuses: [0, 200],
+      }),
+      new ExpirationPlugin({
+        maxEntries: 60, // Cache a maximum of 60 entries
+        maxAgeSeconds: 30 * 24 * 60 * 60, // Cache for 30 days
+      }),
+    ],
+  })
+);
+
+// Optionally, you can also cache images separately with different strategies
+registerRoute(
+  // Cache images
+  ({ request }) => request.destination === 'image',
+  new CacheFirst({
+    cacheName: 'image-cache',
+    plugins: [
+      new CacheableResponsePlugin({
+        statuses: [0, 200],
+      }),
+      new ExpirationPlugin({
+        maxEntries: 50, // Cache a maximum of 50 images
+        maxAgeSeconds: 30 * 24 * 60 * 60, // Cache for 30 days
+      }),
+    ],
+  })
+);
